@@ -1,0 +1,37 @@
+body {
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.cropper-container {
+    margin-top: 20px;
+    border: 2px dashed #ccc;
+    width: 400px; /* Fixed width */
+    height: 400px; /* Fixed height */
+    display: inline-block;
+    background-color: #f0f0f0; /* Added a background to see the canvas area */
+}
+
+canvas {
+    display: block;
+}
+
+div {
+    margin-bottom: 10px;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+pre {
+    background-color: #eee;
+    padding: 10px;
+    border: 1px solid #ddd;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

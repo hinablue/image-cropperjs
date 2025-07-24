@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Cropper</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Image Cropper</h1>
+    <div>
+        <input type="file" id="imageLoader">
+    </div>
+    <div class="cropper-container">
+        <canvas id="imageCanvas"></canvas>
+    </div>
+    <div>
+        <button id="rotateBtn">Rotate 90°</button>
+        <button id="cropBtn">Crop</button>
+    </div>
+    <h2>Output JSON</h2>
+    <pre id="output"></pre>
+    <script src="cropper.js"></script>
+</body>
+</html>
