@@ -313,11 +313,59 @@ class ImageCropper {
             }
         };
     }
+
+    getCroppedCanvasDataURL(options = {}) {
+        if (!this.image || !this.cropBox || this.cropBox.width <= 0 || this.cropBox.height <= 0) {
+            console.error("Cannot export: Image not loaded or no crop box defined.");
+            return null;
+        }
+
+        const type = options.type || 'image/jpeg';
+        const quality = options.quality || 0.92;
+
+        const cropData = this.getCropData();
+        if (!cropData) return null;
+
+        const { x, y, width, height, rotate } = cropData.cropInfo;
+
+        // Create an offscreen canvas to draw the rotated original image
+        const offscreenCanvas = document.createElement('canvas');
+        const offscreenCtx = offscreenCanvas.getContext('2d');
+
+        const isSwapped = (rotate / 90) % 2 !== 0;
+        const rotatedOriginalWidth = isSwapped ? this.image.height : this.image.width;
+        const rotatedOriginalHeight = isSwapped ? this.image.width : this.image.height;
+
+        offscreenCanvas.width = rotatedOriginalWidth;
+        offscreenCanvas.height = rotatedOriginalHeight;
+
+        // Rotate the offscreen canvas and draw the original image
+        offscreenCtx.translate(rotatedOriginalWidth / 2, rotatedOriginalHeight / 2);
+        offscreenCtx.rotate(rotate * Math.PI / 180);
+        offscreenCtx.drawImage(this.image, -this.image.width / 2, -this.image.height / 2);
+
+        // Create the final canvas with the exact crop dimensions
+        const finalCanvas = document.createElement('canvas');
+        const finalCtx = finalCanvas.getContext('2d');
+        finalCanvas.width = width;
+        finalCanvas.height = height;
+
+        // Clip the desired area from the offscreen canvas to the final canvas
+        finalCtx.drawImage(
+            offscreenCanvas,
+            x, y,       // Source x, y
+            width, height, // Source width, height
+            0, 0,        // Destination x, y
+            width, height  // Destination width, height
+        );
+
+        return finalCanvas.toDataURL(type, quality);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const cropper = new ImageCropper('imageCanvas', {
-        aspectRatio: null
+        aspectRatio: 1 / 1
     });
 
     const imageLoader = document.getElementById('imageLoader');
@@ -349,6 +397,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } else {
             output.textContent = 'Please select a crop area.';
+        }
+    });
+
+    const exportBtn = document.getElementById('exportBtn');
+    exportBtn.addEventListener('click', () => {
+        const dataUrl = cropper.getCroppedCanvasDataURL({ type: 'image/jpeg', quality: 0.9 });
+        if (dataUrl) {
+            const exportedImage = document.getElementById('exportedImage');
+            exportedImage.src = dataUrl;
+            exportedImage.style.display = 'block';
         }
     });
 });
