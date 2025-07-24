@@ -2,7 +2,11 @@ class ImageCropper {
     constructor(canvasId, options = {}) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
-        this.options = { ...{ width: 400, height: 400, aspectRatio: null }, ...options };
+        this.options = { ...{
+            width: this.canvas.getBoundingClientRect().width,
+            height: this.canvas.getBoundingClientRect().height,
+            aspectRatio: null
+        }, ...options };
 
         this.canvas.width = this.options.width;
         this.canvas.height = this.options.height;
@@ -313,8 +317,6 @@ class ImageCropper {
 
 document.addEventListener('DOMContentLoaded', () => {
     const cropper = new ImageCropper('imageCanvas', {
-        width: 400,
-        hegiht: 600,
         aspectRatio: null
     });
 

@@ -8,14 +8,18 @@ body {
 .cropper-container {
     margin-top: 20px;
     border: 2px dashed #ccc;
-    width: 400px; /* Fixed width */
-    height: 400px; /* Fixed height */
-    display: inline-block;
-    background-color: #f0f0f0; /* Added a background to see the canvas area */
+    width: 100%;
+    height: 100%;
+    max-width: 80vw; /* Use max-width for responsiveness */
+    display: block; /* Helps the container shrink-to-fit the canvas */
+    object-fit: contain;
+    aspect-ratio: 16/9;
 }
 
 canvas {
     display: block;
+    width: 100%;
+    height: 100%;
 }
 
 div {
