@@ -158,14 +158,26 @@ class ImageCropper {
         };
 
         if (this.action === 'drawing') {
-            let width = clampedPos.x - this.dragStart.x;
-            let height = clampedPos.y - this.dragStart.y;
+            const dx = clampedPos.x - this.dragStart.x;
+            const dy = clampedPos.y - this.dragStart.y;
+
             if (this.options.aspectRatio) {
                 const ar = this.options.aspectRatio;
-                if (Math.abs(width) > Math.abs(height * ar)) height = width / ar; else width = height * ar;
+                let abs_dx = Math.abs(dx);
+                let abs_dy = Math.abs(dy);
+
+                if (abs_dx > abs_dy * ar) {
+                    abs_dy = abs_dx / ar;
+                } else {
+                    abs_dx = abs_dy * ar;
+                }
+                
+                this.cropBox.width = abs_dx * Math.sign(dx);
+                this.cropBox.height = abs_dy * Math.sign(dy);
+            } else {
+                this.cropBox.width = dx;
+                this.cropBox.height = dy;
             }
-            this.cropBox.width = width;
-            this.cropBox.height = height;
         } else if (this.action === 'dragging') {
             const dx = pos.x - this.dragStart.x;
             const dy = pos.y - this.dragStart.y;
@@ -184,10 +196,61 @@ class ImageCropper {
 
     onActionEnd(e) {
         e.preventDefault();
-        if (this.action === 'drawing' && this.cropBox) {
-            if (this.cropBox.width < 0) { this.cropBox.x += this.cropBox.width; this.cropBox.width *= -1; }
-            if (this.cropBox.height < 0) { this.cropBox.y += this.cropBox.height; this.cropBox.height *= -1; }
+
+        if (!this.cropBox) {
+            this.action = 'none';
+            return;
         }
+
+        // First, normalize the box if it was drawn in a negative direction
+        if (this.action === 'drawing') {
+            if (this.cropBox.width < 0) {
+                this.cropBox.x += this.cropBox.width;
+                this.cropBox.width *= -1;
+            }
+            if (this.cropBox.height < 0) {
+                this.cropBox.y += this.cropBox.height;
+                this.cropBox.height *= -1;
+            }
+        }
+
+        // After any action, clamp the crop box to the image boundaries
+        const bounds = this.getImageBoundingBox();
+        let { x, y, width, height } = this.cropBox;
+
+        if (this.options.aspectRatio) {
+            const ar = this.options.aspectRatio;
+
+            // 1. Clamp size while maintaining aspect ratio
+            if (width > bounds.width) {
+                width = bounds.width;
+                height = width / ar;
+            }
+            if (height > bounds.height) {
+                height = bounds.height;
+                width = height * ar;
+            }
+
+            // 2. Clamp position
+            if (x < bounds.x) x = bounds.x;
+            if (y < bounds.y) y = bounds.y;
+            if (x + width > bounds.x + bounds.width) x = bounds.x + bounds.width - width;
+            if (y + height > bounds.y + bounds.height) y = bounds.y + bounds.height - height;
+
+        } else {
+            // Freeform clamping
+            const newX = Math.max(x, bounds.x);
+            const newY = Math.max(y, bounds.y);
+            const newMaxX = Math.min(x + width, bounds.x + bounds.width);
+            const newMaxY = Math.min(y + height, bounds.y + bounds.height);
+
+            x = newX;
+            y = newY;
+            width = newMaxX - newX;
+            height = newMaxY - newY;
+        }
+
+        this.cropBox = { x, y, width, height };
         this.action = 'none';
         this.selectedHandle = null;
         this.redraw();
