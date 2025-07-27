@@ -43,10 +43,43 @@ class ImageCropper {
         this.image = new Image();
         this.image.onload = () => {
             this.rotation = 0;
-            this.cropBox = null;
-            this.updateCanvas();
+            this.updateCanvas(); // Set scale and draw image first
+            this._setDefaultCropBox(); // Then create the default box
+            this.redraw(); // Redraw to show the new box
         };
         this.image.src = imageSrc;
+    }
+
+    _setDefaultCropBox() {
+        if (!this.image) return;
+
+        const bounds = this.getImageBoundingBox();
+        const ar = this.options.aspectRatio;
+        let width, height;
+
+        // Determine the size of the default crop box (e.g., 80% of the smaller dimension)
+        const targetWidth = bounds.width * 0.8;
+        const targetHeight = bounds.height * 0.8;
+
+        if (ar) {
+            if (targetWidth / ar <= targetHeight) {
+                width = targetWidth;
+                height = width / ar;
+            } else {
+                height = targetHeight;
+                width = height * ar;
+            }
+        } else {
+            const size = Math.min(targetWidth, targetHeight);
+            width = size;
+            height = size;
+        }
+
+        // Center the box
+        const x = bounds.x + (bounds.width - width) / 2;
+        const y = bounds.y + (bounds.height - height) / 2;
+
+        this.cropBox = { x, y, width, height };
     }
 
     updateCanvas() {
@@ -152,12 +185,12 @@ class ImageCropper {
 
         const pos = this.getEventPos(e);
         const bounds = this.getImageBoundingBox();
-        const clampedPos = {
-            x: Math.max(bounds.x, Math.min(pos.x, bounds.x + bounds.width)),
-            y: Math.max(bounds.y, Math.min(pos.y, bounds.y + bounds.height))
-        };
 
         if (this.action === 'drawing') {
+            const clampedPos = {
+                x: Math.max(bounds.x, Math.min(pos.x, bounds.x + bounds.width)),
+                y: Math.max(bounds.y, Math.min(pos.y, bounds.y + bounds.height))
+            };
             const dx = clampedPos.x - this.dragStart.x;
             const dy = clampedPos.y - this.dragStart.y;
 
@@ -183,12 +216,16 @@ class ImageCropper {
             const dy = pos.y - this.dragStart.y;
             this.cropBox.x = Math.max(bounds.x, Math.min(this.cropBox.x + dx, bounds.x + bounds.width - this.cropBox.width));
             this.cropBox.y = Math.max(bounds.y, Math.min(this.cropBox.y + dy, bounds.y + bounds.height - this.cropBox.height));
-            this.dragStart = pos; // Update dragStart only when dragging
+            this.dragStart = pos;
         } else if (this.action === 'resizing') {
+            const clampedPos = {
+                x: Math.max(bounds.x, Math.min(pos.x, bounds.x + bounds.width)),
+                y: Math.max(bounds.y, Math.min(pos.y, bounds.y + bounds.height))
+            };
             const dx = clampedPos.x - this.dragStart.x;
             const dy = clampedPos.y - this.dragStart.y;
-            this.resizeCropBox(dx, dy, bounds);
-            this.dragStart = pos; // Update dragStart only when resizing
+            this.resizeCropBox(dx, dy);
+            this.dragStart = clampedPos; // Use clamped position for next iteration
         }
 
         this.redraw();
@@ -256,28 +293,46 @@ class ImageCropper {
         this.redraw();
     }
 
-    resizeCropBox(dx, dy, bounds) {
+    resizeCropBox(dx, dy) {
         let { x, y, width, height } = this.cropBox;
         const handle = this.selectedHandle;
+
         if (this.options.aspectRatio) {
             const ar = this.options.aspectRatio;
-            let change = (Math.abs(dx) > Math.abs(dy)) ? dx : dy;
-            const widthChange = (handle.includes('l') || handle.includes('t')) ? -change : change;
-            const heightChange = widthChange / ar;
+            let growth = 0;
+
+            // Determine the growth factor based on the handle and mouse movement
+            if (handle === 'tr') {
+                growth = (dx - dy) / 2;
+            } else if (handle === 'bl') {
+                growth = (dy - dx) / 2;
+            } else if (handle === 'tl') {
+                growth = (-dx - dy) / 2;
+            } else { // br
+                growth = (dx + dy) / 2;
+            }
+
+            const widthChange = growth;
+            const heightChange = growth / ar;
+
             width += widthChange;
             height += heightChange;
-            if (handle.includes('l')) x -= widthChange;
-            if (handle.includes('t')) y -= heightChange;
+
+            if (handle.includes('l')) {
+                x -= widthChange;
+            }
+            if (handle.includes('t')) {
+                y -= heightChange;
+            }
+
         } else {
+            // Freeform logic (remains the same)
             if (handle.includes('l')) { width -= dx; x += dx; }
             if (handle.includes('r')) { width += dx; }
             if (handle.includes('t')) { height -= dy; y += dy; }
             if (handle.includes('b')) { height += dy; }
         }
-        if (x < bounds.x) { width -= (bounds.x - x); x = bounds.x; }
-        if (y < bounds.y) { height -= (bounds.y - y); y = bounds.y; }
-        if (x + width > bounds.x + bounds.width) { width = bounds.x + bounds.width - x; }
-        if (y + height > bounds.y + bounds.height) { height = bounds.y + bounds.height - y; }
+
         this.cropBox = { x, y, width, height };
     }
 
