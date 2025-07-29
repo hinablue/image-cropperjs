@@ -204,7 +204,7 @@ class ImageCropper {
                 } else {
                     abs_dx = abs_dy * ar;
                 }
-                
+
                 this.cropBox.width = abs_dx * Math.sign(dx);
                 this.cropBox.height = abs_dy * Math.sign(dy);
             } else {
@@ -337,19 +337,31 @@ class ImageCropper {
     }
 
     drawCropBox() {
+        if (!this.cropBox) return;
+
         const { x, y, width, height } = this.cropBox;
 
-        // Fill the crop box with a semi-transparent color
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'; // Semi-transparent white
-        this.ctx.fillRect(x, y, width, height);
+        this.ctx.save();
 
-        // Draw the border
-        this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+        // Create a semi-transparent overlay "mask" outside the crop box
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.beginPath();
+        // Define the outer rectangle (the entire canvas)
+        this.ctx.rect(0, 0, this.canvas.width, this.canvas.height);
+        // Define the inner rectangle (the crop box) as a hole
+        this.ctx.rect(x, y, width, height);
+        // Fill the area between the two rectangles using the 'evenodd' rule
+        this.ctx.fill('evenodd');
+
+        this.ctx.restore();
+
+        // Draw the border of the crop box
+        this.ctx.strokeStyle = 'rgba(96, 157, 48, 1)';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(x, y, width, height);
 
         // Draw the resize handles
-        this.ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+        this.ctx.fillStyle = 'rgba(96, 157, 48, 1)';
         const handleSize = this.resizeHandleSize;
         const halfHandle = handleSize / 2;
         Object.values(this.getHandles()).forEach(pos => {
@@ -483,7 +495,7 @@ class ImageCropper {
 
 document.addEventListener('DOMContentLoaded', () => {
     const cropper = new ImageCropper('imageCanvas', {
-        aspectRatio: 1 / 1
+        aspectRatio: 640 / 395
     });
 
     const imageLoader = document.getElementById('imageLoader');
